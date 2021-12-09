@@ -42,7 +42,7 @@ resource "aws_route_table" "terraform_routeTable" {
   # egress for packets to exit subnet
   route {
     ipv6_cidr_block        = "::/0"
-    egress_only_gateway_id = aws_internet_gateway.terraform_gw.id
+    gateway_id = aws_internet_gateway.terraform_gw.id
   }
 
   tags = {
@@ -119,7 +119,6 @@ resource "aws_security_group" "terraform_sg" {
 # 7. create network interface with an IP in the subnet that was created in step 4
 resource "aws_network_interface" "terraform_network_interface" {
   subnet_id       = aws_subnet.terraform_subnet.id
-  # wth is this?
   private_ips     = ["10.0.1.50"]
   security_groups = [aws_security_group.terraform_sg.id]
 
@@ -129,18 +128,29 @@ resource "aws_network_interface" "terraform_network_interface" {
 resource "aws_eip" "terraform_elastic_ip" {
   vpc                       = true
   network_interface         = aws_network_interface.terraform_network_interface.id
-  # must be one of the network interface IP?
   associate_with_private_ip = "10.0.1.50"
-  depends_on = aws_internet_gateway.terraform_gw
+  depends_on = [aws_internet_gateway.terraform_gw]
 }
 
 # 9. create ubuntu server and install/enable apache2
 resource "aws_instance" "terrafor_ec2" {
-    ami = "ami-0279c3b3186e54acd"
-    instance_type = "t2.micro"
-    availability_zone = "us-east-1a"
-    key_name = "terraform-keypair"
-    tags = {
-        Name = "terraform_ec2"
-    }
+  ami = "ami-0279c3b3186e54acd"
+  instance_type = "t2.micro"
+  availability_zone = "us-east-1a"
+  key_name = "terraform-keypair"
+  network_interface {
+    device_index = 0
+    network_interface_id = aws_network_interface.terraform_network_interface.id
+  }
+
+  user_data = <<-EOF
+              sudo apt update -y
+              sudo apt install apache2 -y
+              sudo systemctl start apache2
+              sudo bash -c "echo web server started"
+              EOF
+
+  tags = {
+      Name = "terraform_ec2"
+  }
 }
