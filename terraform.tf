@@ -4,14 +4,6 @@ provider "aws" {
   secret_key = ""
 }
 
-# resource "aws_instance" "terrafor_ec2" {
-#     ami = "ami-0279c3b3186e54acd"
-#     instance_type = "t2.micro"
-#     tags = {
-#         Name = "terraform_ec2"
-#     }
-# }
-
 # 1. create VPC
 resource "aws_vpc" "terraform_vpc" {
     cidr_block = "10.0.0.0/16"
@@ -129,12 +121,12 @@ resource "aws_eip" "terraform_elastic_ip" {
   vpc                       = true
   network_interface         = aws_network_interface.terraform_network_interface.id
   associate_with_private_ip = "10.0.1.50"
-  depends_on = [aws_internet_gateway.terraform_gw]
+  depends_on = [aws_internet_gateway.terraform_gw, aws_instance.terraform_ec2]
 }
 
 # 9. create ubuntu server and install/enable apache2
-resource "aws_instance" "terrafor_ec2" {
-  ami = "ami-0279c3b3186e54acd"
+resource "aws_instance" "terraform_ec2" {
+  ami = "ami-083654bd07b5da81d"
   instance_type = "t2.micro"
   availability_zone = "us-east-1a"
   key_name = "terraform-keypair"
@@ -144,11 +136,13 @@ resource "aws_instance" "terrafor_ec2" {
   }
 
   user_data = <<-EOF
-              sudo apt update -y
-              sudo apt install apache2 -y
-              sudo systemctl start apache2
-              sudo bash -c "echo web server started"
-              EOF
+		#!/bin/bash
+    sudo apt-get update
+		sudo apt-get install -y apache2
+		sudo systemctl start apache2
+		sudo systemctl enable apache2
+		echo "<h1>Deployed via Terraform</h1>" | sudo tee /var/www/html/index.html
+	EOF
 
   tags = {
       Name = "terraform_ec2"

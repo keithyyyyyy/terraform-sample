@@ -1,0 +1,9 @@
+Hi, this is a sample code to launch a web app in AWS cloud
+
+all you need is to have terraform installed in your computer and add your AWS credentials in lines 3 & 4 
+
+then, proceed with the following commands in terminal:
+    - terraform init
+    - terraform apply
+
+lastly, SSH into your instance and cd to /var/www/html to put in your source code (i would suggest use wget command to your github code)
